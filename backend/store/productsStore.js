@@ -54,4 +54,3 @@ async function remove(id) {
 
 module.exports = { readAll, add, patch, remove };
 
-/
