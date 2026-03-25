@@ -8,6 +8,66 @@ const productsStore = require("../store/productsStore");
 
 const router = express.Router();
 
+function validate(
+  res,
+  title,
+  description,
+  category,
+  price,
+  stock,
+  rating,
+  imageUrl,
+) {
+  if (typeof title !== "string" || title.trim() === "") {
+    return res.status(400).json({
+      error: "validation_error",
+      message: "Поле title обязательно (строка)",
+    });
+  }
+
+  if (typeof category !== "string") {
+    return res.status(400).json({
+      error: "validation_error",
+      message: "Поле category должно быть типа string",
+    });
+  }
+
+  if (typeof description !== "string") {
+    return res.status(400).json({
+      error: "validation_error",
+      message: "Поле description должно быть типа string",
+    });
+  }
+
+  if (typeof price !== "number" || price <= 0) {
+    return res.status(400).json({
+      error: "validation_error",
+      message: "Поле price не может быть <= 0 и должно быть типа number",
+    });
+  }
+
+  if (typeof stock !== "number" || stock < 0) {
+    return res.status(400).json({
+      error: "validation_error",
+      message: "Поле stock не можеть быть < 0 и должно быть типа number",
+    });
+  }
+
+  if (rating && (typeof rating !== "number" || rating < 0.0 || rating > 5.0)) {
+    return res.status(400).json({
+      error: "validation_error",
+      message: "Поле rating должно быть типа number, значение >= 0.0 и <= 5.0",
+    });
+  }
+
+  if (typeof imageUrl !== "string") {
+    return res.status(400).json({
+      error: "validation_error",
+      message: "Поле imageUrl должно быть типа string",
+    });
+  }
+}
+
 /**
  * products.js — маршруты (routes) для работы с товарами
  *
@@ -73,13 +133,120 @@ const router = express.Router();
  */
 
 /**
- * TODO (Практика 8 — JWT):
+ * @swagger
+ * /api/products/:id:
+ *   get:
+ *     summary: Возвращает товар по ID
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Товар получен
+ *       401:
+ *         description: Нет ID или ID не верен
+ *       404:
+ *         description: Товар не найден
+ */
+
+/**
+ * @swagger
+ * /api/products/:id:
+ *   put:
+ *     summary: Полностью обновляет товар по его ID
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Товар создан или изменён
+ *       401:
+ *         description: Нет ID или ID не верен
+ */
+
+/**
+ * @swagger
+ * /api/products/:id:
+ *   patch:
+ *     summary: Изменяет данные о товаре по его ID
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Товар изменён
+ *       401:
+ *         description: Нет ID или ID не верен
+ *       404:
+ *         description: Товар не найден
+ */
+
+/**
+ * @swagger
+ * /api/products/:id:
+ *   delete:
+ *     summary: Удаляет товар по ID
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Товар удалён
+ *       401:
+ *         description: Нет ID или ID не верен
+ *       404:
+ *         description: Товар не найден
+ */
+
+/**
+ * @swagger
+ * /api/products/:
+ *   get:
+ *     summary: Получить список товаров
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: Успех
+ *       404:
+ *         description: Товары не найдены
+ */
+
+/**
+ * @swagger
+ * /api/products/:
+ *   post:
+ *     summary: Добавить товар
+ *     tags: [Products]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, price]
+ *             properties:
+ *               title: { type: string, example: "Печенье" }
+ *               description: { type: string, example: "Очень очень вкусное" }
+ *               category: { type: string, example: "Выпечка" }
+ *               price: { type: number, example: 120 }
+ *               stock: { type: number, example: 50}
+ *               rating: { type: number, example: 4.5}
+ *               imageUrl: { type: string, example: "https://i.pinimg.com/736x/43/e8/54/43e8546c9bd4087b0dbf9838676d6579.jpg"}
+ *     responses:
+ *       200:
+ *         description: Товар создан
+ *       400:
+ *         description: Не все поля заполнены
+ */
+
+/**
+ * (Практика 8 — JWT):
  * - Сейчас защищены: GET /api/products/:id, PUT /api/products/:id, DELETE /api/products/:id
  * - PATCH /api/products/:id сейчас НЕ защищён.
  *   Сделайте его защищённым так же, как PUT/DELETE:
  *     router.patch("/:id", authMiddleware, ...)
  *
- * TODO (Практика 5 — Swagger):
+ * (Практика 5 — Swagger):
  * - Допишите Swagger-аннотации для:
  *   - GET /api/products/:id
  *   - PUT /api/products/:id
@@ -89,7 +256,7 @@ const router = express.Router();
  *     security:
  *       - bearerAuth: []
  *
- * TODO (Практика 3 — качество API):
+ *  (Практика 3 — качество API):
  * - Добавьте строгую валидацию входных данных:
  *   title/category/description/price/stock (+ корректные типы, NaN, отрицательные значения)
  * - Приведите ошибки к единому формату:
@@ -101,6 +268,7 @@ router.get("/", async (req, res, next) => {
   try {
     const list = await productsStore.readAll();
     res.json(list);
+    console.log(res.json);
   } catch (err) {
     next(err);
   }
@@ -112,7 +280,10 @@ router.get("/:id", authMiddleware, async (req, res, next) => {
     const list = await productsStore.readAll();
     const product = list.find((p) => p.id === req.params.id) || null;
 
-    if (!product) return res.status(404).json({ error: "product_not_found", message: "Товар не найден" });
+    if (!product)
+      return res
+        .status(404)
+        .json({ error: "product_not_found", message: "Товар не найден" });
     res.json(product);
   } catch (err) {
     next(err);
@@ -122,17 +293,16 @@ router.get("/:id", authMiddleware, async (req, res, next) => {
 // POST /api/products — добавить товар (публичный)
 router.post("/", async (req, res, next) => {
   try {
-    const { title, category, description, price, stock, rating, imageUrl } = req.body;
+    const { title, category, description, price, stock, rating, imageUrl } =
+      req.body;
 
-    // TODO (студентам): полноценная валидация, иначе можно сохранить "мусор"
-    if (typeof title !== "string" || title.trim() === "") {
-      return res.status(400).json({ error: "validation_error", message: "Поле title обязательно (строка)" });
-    }
+    validate(res, title, description, category, price, stock, rating, imageUrl);
 
     const newProduct = {
       id: nanoid(8),
       title: title.trim(),
-      category: typeof category === "string" ? category.trim() : "Без категории",
+      category:
+        typeof category === "string" ? category.trim() : "Без категории",
       description: typeof description === "string" ? description.trim() : "",
       price: Number(price) || 0,
       stock: Number(stock) || 0,
@@ -151,22 +321,33 @@ router.post("/", async (req, res, next) => {
 router.put("/:id", authMiddleware, async (req, res, next) => {
   try {
     // Учебный вариант: используем patch под капотом.
-    // TODO (студентам): реализовать строгий PUT (обязательные поля и типы)
+    // (студентам): реализовать строгий PUT (обязательные поля и типы)
+    const { title, category, description, price, stock, rating, imageUrl } =
+      req.body;
+
+    validate(res, title, description, category, price, stock, rating, imageUrl);
+
     const updated = await productsStore.patch(req.params.id, req.body);
 
-    if (!updated) return res.status(404).json({ error: "product_not_found", message: "Товар не найден" });
+    if (!updated)
+      return res
+        .status(404)
+        .json({ error: "product_not_found", message: "Товар не найден" });
     res.json(updated);
   } catch (err) {
     next(err);
   }
 });
 
-// PATCH /api/products/:id — частичное обновление (СЕЙЧАС НЕ ЗАЩИЩЁН, как TODO для Практики 8)
-router.patch("/:id", async (req, res, next) => {
+// PATCH /api/products/:id — частичное обновление (СЕЙЧАС НЕ ЗАЩИЩЁН, как для Практики 8)
+router.patch("/:id", authMiddleware, async (req, res, next) => {
   try {
     const updated = await productsStore.patch(req.params.id, req.body);
 
-    if (!updated) return res.status(404).json({ error: "product_not_found", message: "Товар не найден" });
+    if (!updated)
+      return res
+        .status(404)
+        .json({ error: "product_not_found", message: "Товар не найден" });
     res.json(updated);
   } catch (err) {
     next(err);
@@ -178,7 +359,10 @@ router.delete("/:id", authMiddleware, async (req, res, next) => {
   try {
     const ok = await productsStore.remove(req.params.id);
 
-    if (!ok) return res.status(404).json({ error: "product_not_found", message: "Товар не найден" });
+    if (!ok)
+      return res
+        .status(404)
+        .json({ error: "product_not_found", message: "Товар не найден" });
 
     // Обычно делают 204 No Content, но для наглядности вернём JSON
     res.json({ ok: true });

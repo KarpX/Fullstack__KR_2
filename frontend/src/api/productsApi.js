@@ -7,21 +7,41 @@ import { api } from "./apiClient";
  */
 
 export async function getProducts() {
-    return (await api.get("/products")).data;
-  throw new Error("TODO: реализуйте getProducts()");
+  const response = await api.get("/products");
+  return response.data;
 }
 
 export async function createProduct(payload) {
-    return (await api.post("/products", payload)).data;
-  throw new Error("TODO: реализуйте createProduct(payload)");
+  const response = await api.post("/products/", payload);
+  return response.data;
 }
 
 export async function updateProduct(id, patch) {
-    return (await api.patch(`/products/${id}`, patch)).data;
-  throw new Error("TODO: реализуйте updateProduct(id, patch)");
+  const response = await api.patch(`/products/${id}`, patch);
+  return response.data;
 }
 
 export async function deleteProduct(id) {
-    return (await api.delete(`/products/${id}`)).data;
-  throw new Error("TODO: реализуйте deleteProduct(id)");
+  const response = await api.delete(`/products/${id}`);
+  return response.data;
+}
+
+// export async function deleteProductByName(name) {
+//   const response = await api.delete(`/api/products/name/${name}`);
+//   return response.data;
+// }
+
+// export async function getProductsByCategory(category) {
+//   const response = await api.get(`/api/products/category/${category}`);
+//   return response.data;
+// }
+
+// export async function getProductsByPrice(price) {
+//   const response = await api.get(`/api/products/price/${price}`);
+//   return response.data;
+// }
+
+export async function getProductById(id) {
+  const response = await api.get(`/products/${id}`);
+  return response.data;
 }

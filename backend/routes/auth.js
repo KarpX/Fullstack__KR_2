@@ -3,7 +3,11 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { nanoid } = require("nanoid");
 
-const { authMiddleware, JWT_SECRET } = require("../middleware/authJwt");
+const {
+  authMiddleware,
+  JWT_SECRET,
+  JWT_REFRESH_SECRET,
+} = require("../middleware/authJwt");
 
 const router = express.Router();
 
@@ -87,9 +91,9 @@ router.post("/register", async (req, res) => {
   const passwordHash = await bcrypt.hash(String(password), 10);
   // 10 — cost factor; определяет, насколько вычисление хеша будет тяжёлым.
   //	•	8 — быстрее;
-	//  •	10 — стандартно;
-	//  •	12 — медленнее;
-	//  •	14 — ещё тяжелее.
+  //  •	10 — стандартно;
+  //  •	12 — медленнее;
+  //  •	14 — ещё тяжелее.
 
   // 5) Создаём пользователя (id — случайный)
   const user = {
@@ -178,12 +182,15 @@ router.post("/login", async (req, res) => {
   const accessToken = jwt.sign(
     { sub: user.id, email: user.email },
     JWT_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: "15m" },
   );
+  const refreshToken = jwt.sign({ sub: user.id }, JWT_REFRESH_SECRET, {
+    expiresIn: "7d",
+  });
 
-// JWT_SECRET - Это ключ подписи.
+  // JWT_SECRET - Это ключ подписи.
 
-  return res.json({ accessToken });
+  return res.json({ accessToken, refreshToken });
 });
 
 /**
@@ -214,13 +221,43 @@ router.get("/me", authMiddleware, (req, res) => {
     });
   }
 
-  // Возвращаем “профиль” 
+  // Возвращаем “профиль”
   return res.json({
     id: user.id,
     email: user.email,
     first_name: user.first_name,
     last_name: user.last_name,
   });
+});
+
+router.post("/refresh", (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: "Refresh token отсутствует" });
+  }
+
+  try {
+    const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+    const user = users.find((u) => u.id === payload.sub);
+
+    if (!user) {
+      return res.status(401).json({ message: "Пользователь не найден" });
+    }
+
+    const newAccessToken = jwt.sign(
+      { sub: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: "15m" },
+    );
+    const newRefreshToken = jwt.sign({ sub: user.id }, JWT_REFRESH_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+  } catch (err) {
+    res.status(403).json({ message: "Refresh token невалиден или просрочен" });
+  }
 });
 
 module.exports = router;

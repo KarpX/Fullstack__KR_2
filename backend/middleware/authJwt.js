@@ -10,6 +10,7 @@ const jwt = require("jsonwebtoken");
  * - В реальных проектах секрет хранится в переменных окружения (env), а не в коде.
  */
 const JWT_SECRET = process.env.JWT_SECRET || "access_secret";
+const JWT_REFRESH_SECRET = "super-puper-key";
 //берём process.env.JWT_SECRET, если он задан, иначе используем строку по умолчанию "access_secret"
 
 /**
@@ -64,4 +65,4 @@ function authMiddleware(req, res, next) {
   }
 }
 
-module.exports = { authMiddleware, JWT_SECRET };
+module.exports = { authMiddleware, JWT_SECRET, JWT_REFRESH_SECRET };
