@@ -6,6 +6,7 @@ import {
   updateProduct,
 } from "./api/productsApi";
 import { register, login, getMe } from "./api/authApi";
+import { getUsers, setUserRole } from "./api/adminApi";
 import "./app.css";
 
 /**
@@ -42,7 +43,7 @@ export default function App() {
 
   // Проверка профиля при загрузке страницы
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken");
     if (token) {
       checkProfile();
     }
@@ -55,7 +56,7 @@ export default function App() {
       const data = await getMe(); // Запрос GET /api/auth/me
       setUser(data);
     } catch (e) {
-      localStorage.removeItem("token");
+      localStorage.removeItem("accessToken");
       setUser(null);
     }
   }
@@ -89,6 +90,39 @@ export default function App() {
     localStorage.removeItem("refreshToken");
     setUser(null);
   }
+
+  const [usersList, setUsersList] = useState([]);
+  const [roleError, setRoleError] = useState("");
+  const [roleLoading, setRoleLoading] = useState(false);
+
+  async function loadUsers() {
+    if (user?.role !== "admin") return;
+    setRoleError("");
+    setRoleLoading(true);
+    try {
+      const list = await getUsers();
+      setUsersList(list);
+    } catch (e) {
+      setRoleError(String(e?.response?.data?.message || e?.message || e));
+    } finally {
+      setRoleLoading(false);
+    }
+  }
+
+  async function handleRoleChange(userId, newRole) {
+    try {
+      await setUserRole(userId, newRole);
+      loadUsers();
+    } catch (e) {
+      alert("Не удалось изменить роль");
+    }
+  }
+
+  useEffect(() => {
+    if (user?.role === "admin") {
+      loadUsers();
+    }
+  }, [user]);
 
   const canSubmit = useMemo(
     () => title.trim() !== "" && price !== "",
@@ -225,8 +259,9 @@ export default function App() {
               <b>
                 {user.first_name} {user.last_name}
               </b>{" "}
-              ({user.email})
+              {`Email: ${user.email}`}
             </p>
+            <p>{`Роль: ${user.role}`}</p>
             <button onClick={handleLogout}>Выйти</button>
           </div>
         ) : (
@@ -286,6 +321,61 @@ export default function App() {
           </div>
         )}
       </section>
+
+      {user?.role === "admin" && (
+        <section
+          style={{
+            marginTop: 40,
+            padding: 20,
+            border: "2px solid #000",
+            borderRadius: 20,
+            backgroundColor: "#fff4f4",
+          }}
+        >
+          <h2>Админ-панель: Управление пользователями</h2>
+          <table style={{ width: "100%", textAlign: "left" }}>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Имя</th>
+                <th>Текущая роль</th>
+                <th>Действие</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usersList.map((u) => (
+                <tr key={u.id}>
+                  <td>{u.email}</td>
+                  <td>
+                    {u.first_name} {u.last_name}
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: 10,
+                        background: u.role === "admin" ? "#ff4d4d" : "#ccc",
+                        color: u.role === "admin" ? "white" : "black",
+                      }}
+                    >
+                      {u.role}
+                    </span>
+                  </td>
+                  <td>
+                    <select
+                      value={u.role}
+                      onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                    >
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       <section
         style={{

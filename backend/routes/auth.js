@@ -1,3 +1,5 @@
+const { users, publicUser } = require("../store/usersStore");
+
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -20,7 +22,6 @@ const router = express.Router();
  * - В реальных проектах вместо users[] будет БД (Postgres, Mongo, SQLite) или файл.
  * - В users[] мы НЕ храним пароль, только bcrypt-хеш (passwordHash).
  */
-const users = [];
 
 /**
  * @swagger
@@ -102,6 +103,7 @@ router.post("/register", async (req, res) => {
     first_name: String(first_name),
     last_name: String(last_name),
     passwordHash, // ВАЖНО: храним только хеш, не пароль
+    role: users.length === 0 ? "admin" : "user",
   };
 
   // 6) Сохраняем в "учебное хранилище" (память)
@@ -180,13 +182,17 @@ router.post("/login", async (req, res) => {
   //
   // expiresIn: "15m" — токен протухнет через 15 минут (токен с ограниченным сроком дейтсвия)
   const accessToken = jwt.sign(
-    { sub: user.id, email: user.email },
+    { sub: user.id, email: user.email, role: user.role },
     JWT_SECRET,
     { expiresIn: "15m" },
   );
-  const refreshToken = jwt.sign({ sub: user.id }, JWT_REFRESH_SECRET, {
-    expiresIn: "7d",
-  });
+  const refreshToken = jwt.sign(
+    { sub: user.id, email: user.email },
+    JWT_REFRESH_SECRET,
+    {
+      expiresIn: "7d",
+    },
+  );
 
   // JWT_SECRET - Это ключ подписи.
 
@@ -227,6 +233,7 @@ router.get("/me", authMiddleware, (req, res) => {
     email: user.email,
     first_name: user.first_name,
     last_name: user.last_name,
+    role: user.role,
   });
 });
 
@@ -246,7 +253,7 @@ router.post("/refresh", (req, res) => {
     }
 
     const newAccessToken = jwt.sign(
-      { sub: user.id, email: user.email },
+      { sub: user.id, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: "15m" },
     );

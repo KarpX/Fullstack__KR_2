@@ -1,6 +1,6 @@
 const express = require("express");
 const { nanoid } = require("nanoid");
-const { authMiddleware } = require("../middleware/authJwt");
+const { authMiddleware, requireRole } = require("../middleware/authJwt");
 
 // JSON-store (лекция 2): чтение/запись товаров в backend/data/products.json
 // Важно: products.json — локальное runtime-хранилище (в .gitignore), а стартовые данные — в products.seed.json
@@ -291,7 +291,7 @@ router.get("/:id", authMiddleware, async (req, res, next) => {
 });
 
 // POST /api/products — добавить товар (публичный)
-router.post("/", async (req, res, next) => {
+router.post("/", requireRole("admin"), async (req, res, next) => {
   try {
     const { title, category, description, price, stock, rating, imageUrl } =
       req.body;
@@ -318,57 +318,81 @@ router.post("/", async (req, res, next) => {
 });
 
 // PUT /api/products/:id — полное обновление (защищённый маршрут в Практике 8)
-router.put("/:id", authMiddleware, async (req, res, next) => {
-  try {
-    // Учебный вариант: используем patch под капотом.
-    // (студентам): реализовать строгий PUT (обязательные поля и типы)
-    const { title, category, description, price, stock, rating, imageUrl } =
-      req.body;
+router.put(
+  "/:id",
+  authMiddleware,
+  requireRole("admin"),
+  async (req, res, next) => {
+    try {
+      // Учебный вариант: используем patch под капотом.
+      // (студентам): реализовать строгий PUT (обязательные поля и типы)
+      const { title, category, description, price, stock, rating, imageUrl } =
+        req.body;
 
-    validate(res, title, description, category, price, stock, rating, imageUrl);
+      validate(
+        res,
+        title,
+        description,
+        category,
+        price,
+        stock,
+        rating,
+        imageUrl,
+      );
 
-    const updated = await productsStore.patch(req.params.id, req.body);
+      const updated = await productsStore.patch(req.params.id, req.body);
 
-    if (!updated)
-      return res
-        .status(404)
-        .json({ error: "product_not_found", message: "Товар не найден" });
-    res.json(updated);
-  } catch (err) {
-    next(err);
-  }
-});
+      if (!updated)
+        return res
+          .status(404)
+          .json({ error: "product_not_found", message: "Товар не найден" });
+      res.json(updated);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // PATCH /api/products/:id — частичное обновление (СЕЙЧАС НЕ ЗАЩИЩЁН, как для Практики 8)
-router.patch("/:id", authMiddleware, async (req, res, next) => {
-  try {
-    const updated = await productsStore.patch(req.params.id, req.body);
+router.patch(
+  "/:id",
+  authMiddleware,
+  requireRole("admin"),
+  async (req, res, next) => {
+    try {
+      const updated = await productsStore.patch(req.params.id, req.body);
 
-    if (!updated)
-      return res
-        .status(404)
-        .json({ error: "product_not_found", message: "Товар не найден" });
-    res.json(updated);
-  } catch (err) {
-    next(err);
-  }
-});
+      if (!updated)
+        return res
+          .status(404)
+          .json({ error: "product_not_found", message: "Товар не найден" });
+      res.json(updated);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // DELETE /api/products/:id — удалить товар (защищённый)
-router.delete("/:id", authMiddleware, async (req, res, next) => {
-  try {
-    const ok = await productsStore.remove(req.params.id);
+router.delete(
+  "/:id",
+  authMiddleware,
+  requireRole("admin"),
+  async (req, res, next) => {
+    try {
+      const ok = await productsStore.remove(req.params.id);
 
-    if (!ok)
-      return res
-        .status(404)
-        .json({ error: "product_not_found", message: "Товар не найден" });
+      if (!ok)
+        return res
+          .status(404)
+          .json({ error: "product_not_found", message: "Товар не найден" });
 
-    // Обычно делают 204 No Content, но для наглядности вернём JSON
-    res.json({ ok: true });
-  } catch (err) {
-    next(err);
-  }
-});
+      // Обычно делают 204 No Content, но для наглядности вернём JSON
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 module.exports = router;

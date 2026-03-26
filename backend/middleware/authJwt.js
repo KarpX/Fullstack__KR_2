@@ -10,7 +10,7 @@ const jwt = require("jsonwebtoken");
  * - В реальных проектах секрет хранится в переменных окружения (env), а не в коде.
  */
 const JWT_SECRET = process.env.JWT_SECRET || "access_secret";
-const JWT_REFRESH_SECRET = "super-puper-key";
+const JWT_REFRESH_SECRET = process.env.REFRESH_SECRET || "refresh_secret";
 //берём process.env.JWT_SECRET, если он задан, иначе используем строку по умолчанию "access_secret"
 
 /**
@@ -33,19 +33,19 @@ function authMiddleware(req, res, next) {
   const header = req.headers.authorization || "";
 
   // header должен быть вида: "Bearer eyJhbGciOi..."
-  const [scheme, token] = header.split(" ");
+  const [scheme, accessToken] = header.split(" ");
 
   // 1) Нет "Bearer" или нет токена → сразу 401
-  if (scheme !== "Bearer" || !token) {
+  if (scheme !== "Bearer" || !accessToken) {
     return res.status(401).json({
       error: "auth_header_missing",
-      message: "Нужен заголовок Authorization: Bearer <token>",
+      message: "Нужен заголовок Authorization: Bearer <accessToken>",
     });
   }
 
   try {
     // 2) Проверяем подпись токена и срок действия (exp)
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(accessToken, JWT_SECRET);
 
     // payload — это объект, который мы подписали при логине.
     // Например: { sub: userId, email, iat, exp }
@@ -65,4 +65,23 @@ function authMiddleware(req, res, next) {
   }
 }
 
-module.exports = { authMiddleware, JWT_SECRET, JWT_REFRESH_SECRET };
+function requireRole(requiredRole) {
+  return (req, res, next) => {
+    const actualRole = req.user?.role;
+    console.log(`actualRole: ${actualRole}`);
+    if (actualRole !== requiredRole) {
+      return res.status(403).json({
+        error: "forbidden",
+        message: `Доступ запрещён. Нужна роль: ${requiredRole}`,
+      });
+    }
+    next();
+  };
+}
+
+module.exports = {
+  authMiddleware,
+  requireRole,
+  JWT_SECRET,
+  JWT_REFRESH_SECRET,
+};
