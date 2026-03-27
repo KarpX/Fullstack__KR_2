@@ -1,49 +1,19 @@
-# Starter: Практики 7–8 — Аутентификация (bcrypt + JWT)
+# Фронтенд и бэкенд разработка
+## Контрольная работа №2
 
-Этот репозиторий — **учебная заготовка** для практик 7–8:
-
-- Практика 7: регистрация и вход с **bcrypt** (пароль хранится как хеш)
-- Практика 8: выдача **JWT**, middleware проверки токена, защищённые маршруты
-
-## Быстрый старт
-
-### Backend
-
-```bash
-cd backend
-npm i
-npm run dev
-```
-
-- API: http://localhost:3000
-- Swagger UI: http://localhost:3000/api-docs
-
-### Проверка запросов
-
-- Postman/Insomnia
-- или файл `backend/api.http` (VS Code + REST Client)
-
-## Что в коде уже есть, а что нужно дописать студентам
-
-Есть (пример):
-
+### Auth
 - `POST /api/auth/register`
-- `POST /api/auth/login` (выдаёт JWT)
-- `GET /api/auth/me` (JWT обязателен)
-- CRUD для товаров (частично)
+- `POST /api/auth/login`
+- `GET /api/auth/me` (защищён: авторизация)
 
-TODO студентам:
+### Admin
+- `GET /api/admin/users` (защищён: роль – `admin`, авторизация)
+- `PATCH /api/admin/users/{id}/role` (защищён: роль – `admin`, авторизация)
 
-- усилить валидацию и статусы
-- дописать/допривести к требованиям все маршруты (см. student-handout)
-- задокументировать все маршруты в Swagger (OpenAPI)
-- выполнить TODO в каждом файле проекта
-- добавить refresh token
-
-## Структура
-
-- `backend/app.js` — точка входа, подключение Swagger, роуты
-- `backend/routes/auth.js` — регистрация/вход/JWT/me
-- `backend/middleware/authJwt.js` — проверка токена (Bearer)
-- `backend/routes/products.js` — товары (часть маршрутов защищена)
-- `docs/student-handout.md` — методичка для студентов
+### Products
+- `GET /api/products/:id` (защищён: авторизация)
+- `PUT /api/products/:id` (защищён: роль – `admin`, авторизация)
+- `PATCH /api/products/:id` (защищён: роль – `admin`, авторизация)
+- `DELETE /api/products/:id` (защищён: роль – `admin`, авторизация)
+- `GET /api/products`
+- `POST /api/products` (защищён: авторизация)
