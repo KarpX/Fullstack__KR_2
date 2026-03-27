@@ -112,9 +112,17 @@ export default function App() {
   async function handleRoleChange(userId, newRole) {
     try {
       await setUserRole(userId, newRole);
+
+      if (userId === user.id) {
+        alert("Ваша роль была изменена. Пожалуйста, войдите в систему заново.");
+        handleLogout();
+        return;
+      }
+
       loadUsers();
     } catch (e) {
-      alert("Не удалось изменить роль");
+      console.error(e);
+      setError("Не удалось сменить роль. Возможно, у вас недостаточно прав.");
     }
   }
 
